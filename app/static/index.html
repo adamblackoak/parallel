@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>SetWatch — production pre-flight</title>
+  <style>
+    :root { color-scheme: dark; --bg:#0a0c10; --panel:#11151b; --line:#242b35; --text:#f4f5f7; --muted:#9aa6b2; --go:#57c785; --verify:#e6b85c; --change:#ef6a6a; --accent:#79a8ff; }
+    * { box-sizing:border-box; }
+    body { margin:0; font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif; background:radial-gradient(circle at 20% -10%,#17213a 0,transparent 35%),var(--bg); color:var(--text); }
+    main { width:min(1180px,calc(100% - 32px)); margin:0 auto; padding:48px 0 80px; }
+    header { display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:28px; }
+    h1 { font-size:clamp(36px,5vw,64px); line-height:.95; letter-spacing:-.055em; margin:0; }
+    h1 span { color:var(--accent); }
+    .strap { max-width:630px; margin:14px 0 0; color:var(--muted); font-size:17px; line-height:1.55; }
+    .badge { border:1px solid var(--line); border-radius:999px; padding:8px 12px; font-size:12px; color:var(--muted); white-space:nowrap; }
+    .layout { display:grid; grid-template-columns:minmax(0,1.05fr) minmax(0,.95fr); gap:18px; }
+    .panel { background:rgba(17,21,27,.92); border:1px solid var(--line); border-radius:18px; padding:20px; box-shadow:0 20px 70px rgba(0,0,0,.25); }
+    label { display:block; font-size:12px; text-transform:uppercase; letter-spacing:.12em; color:var(--muted); margin:0 0 8px; }
+    textarea,input { width:100%; border:1px solid var(--line); background:#0b0e13; color:var(--text); border-radius:12px; padding:13px 14px; font:inherit; outline:none; }
+    textarea:focus,input:focus { border-color:#526a94; }
+    textarea { min-height:320px; resize:vertical; line-height:1.55; }
+    .row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:12px; }
+    button { width:100%; margin-top:14px; border:0; border-radius:12px; padding:14px 16px; background:var(--text); color:#080a0d; font-weight:800; font-size:15px; cursor:pointer; }
+    button:disabled { opacity:.5; cursor:wait; }
+    .micro { margin-top:10px; font-size:12px; color:var(--muted); line-height:1.5; }
+    .result-empty { min-height:452px; display:grid; place-items:center; text-align:center; color:var(--muted); padding:24px; border:1px dashed var(--line); border-radius:14px; }
+    .overall { display:flex; gap:12px; align-items:flex-start; justify-content:space-between; padding-bottom:16px; border-bottom:1px solid var(--line); }
+    .status { display:inline-flex; align-items:center; border-radius:999px; padding:6px 10px; font-size:11px; font-weight:900; letter-spacing:.08em; }
+    .GO { color:var(--go); background:rgba(87,199,133,.1); border:1px solid rgba(87,199,133,.3); }
+    .VERIFY { color:var(--verify); background:rgba(230,184,92,.1); border:1px solid rgba(230,184,92,.3); }
+    .CHANGE { color:var(--change); background:rgba(239,106,106,.1); border:1px solid rgba(239,106,106,.3); }
+    .summary { font-size:18px; line-height:1.45; margin-top:9px; }
+    .finding { padding:17px 0; border-bottom:1px solid var(--line); }
+    .finding:last-child { border-bottom:0; }
+    .finding-head { display:flex; gap:10px; align-items:center; margin-bottom:10px; }
+    .finding h3 { font-size:16px; margin:0; }
+    dl { display:grid; grid-template-columns:105px 1fr; gap:8px 12px; margin:0; font-size:13px; line-height:1.5; }
+    dt { color:var(--muted); } dd { margin:0; }
+    .sources { margin:10px 0 0 117px; padding-left:17px; font-size:12px; color:var(--muted); }
+    .sources a { color:#aec8ff; text-decoration:none; }
+    .changed { margin:14px 0 0; padding:12px; border:1px solid var(--line); border-radius:10px; color:var(--muted); font-size:13px; }
+    .error { border-color:rgba(239,106,106,.45); color:#ffb3b3; }
+    @media(max-width:880px){ header{align-items:flex-start;flex-direction:column}.layout{grid-template-columns:1fr}.row{grid-template-columns:1fr}textarea{min-height:240px}.sources{margin-left:0}dl{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+<main>
+  <header>
+    <div>
+      <h1>Set<span>Watch</span></h1>
+      <p class="strap">Paste the production plan. SetWatch identifies the assumptions that can change underneath it, researches them live with Parallel, and turns the evidence into a go / verify / change board.</p>
+    </div>
+    <div id="runtimeBadge" class="badge">checking runtime…</div>
+  </header>
+
+  <div class="layout">
+    <section class="panel">
+      <label for="plan">Production plan / call-sheet extract</label>
+      <textarea id="plan" placeholder="Example: Unit call 05:30. Exterior sequence from 07:00–10:30 in central London. Two 7.5t trucks need loading access from 05:45. Crew transfer depends on the nearest rail station operating normally. Rain cover is limited; the exterior sequence cannot tolerate heavy rain. Confirm whether any current closures, major events, access restrictions or transport disruption materially threaten the plan."></textarea>
+      <div class="row">
+        <div>
+          <label for="date">Production date</label>
+          <input id="date" type="date" />
+        </div>
+        <div>
+          <label for="location">Location context</label>
+          <input id="location" placeholder="e.g. central London, UK" />
+        </div>
+      </div>
+      <button id="run">Run live pre-flight</button>
+      <p class="micro">A prior result is kept only in this browser and sent back on the next run so SetWatch can call out material changes.</p>
+    </section>
+
+    <section class="panel" id="resultPanel">
+      <div class="result-empty" id="empty">No verdict yet.<br/>The useful question is not “what can we search?” but “what could make tomorrow fail?”</div>
+      <div id="result" hidden></div>
+    </section>
+  </div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? '').replace(/[&<>'"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[c]));
+const previousKey = 'setwatch.previousSnapshot';
+
+async function loadHealth(){
+  try {
+    const h = await fetch('/health').then(r => r.json());
+    $('runtimeBadge').textContent = `${h.mode.toUpperCase()} · ${h.agent_framework} · ${h.model}`;
+  } catch { $('runtimeBadge').textContent = 'runtime unavailable'; }
+}
+
+function render(data){
+  const r = data.result || {};
+  const findings = Array.isArray(r.findings) ? r.findings : [];
+  const findingsHtml = findings.map(f => {
+    const sources = Array.isArray(f.sources) ? f.sources : [];
+    return `<article class="finding">
+      <div class="finding-head"><span class="status ${esc(f.status)}">${esc(f.status)}</span><h3>${esc(f.assumption)}</h3></div>
+      <dl>
+        <dt>Evidence</dt><dd>${esc(f.evidence)}</dd>
+        <dt>Inference</dt><dd>${esc(f.inference)}</dd>
+        <dt>Consequence</dt><dd>${esc(f.consequence)}</dd>
+        <dt>Action</dt><dd>${esc(f.recommended_action)}</dd>
+        <dt>Confidence</dt><dd>${esc(f.confidence)}</dd>
+      </dl>
+      ${sources.length ? `<ul class="sources">${sources.map(s => `<li><a href="${esc(s.url)}" target="_blank" rel="noreferrer">${esc(s.title || s.url)}</a>${s.publish_date ? ` · ${esc(s.publish_date)}` : ''}</li>`).join('')}</ul>` : ''}
+    </article>`;
+  }).join('');
+
+  $('empty').hidden = true;
+  $('result').hidden = false;
+  $('result').innerHTML = `<div class="overall"><div><span class="status ${esc(r.overall_status)}">${esc(r.overall_status || 'VERIFY')}</span><div class="summary">${esc(r.summary || 'No summary returned.')}</div></div><div class="badge">${esc(r.assumptions_checked ?? findings.length)} checked</div></div>${r.change_note ? `<div class="changed"><strong>Changed:</strong> ${esc(r.change_note)}</div>` : ''}${findingsHtml || '<div class="changed">No structured findings returned.</div>'}`;
+  localStorage.setItem(previousKey, JSON.stringify(r));
+}
+
+$('run').addEventListener('click', async () => {
+  const plan = $('plan').value.trim();
+  if(plan.length < 20){ alert('Add enough of the production plan to research meaningfully.'); return; }
+  $('run').disabled = true;
+  $('run').textContent = 'Researching live dependencies…';
+  const previousRaw = localStorage.getItem(previousKey);
+  let previous = null; try { previous = previousRaw ? JSON.parse(previousRaw) : null; } catch {}
+  try {
+    const res = await fetch('/api/check', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ plan, production_date:$('date').value || null, location_context:$('location').value || null, previous_snapshot:previous }) });
+    const payload = await res.json();
+    if(!res.ok) throw new Error(payload.detail || 'Run failed');
+    render(payload);
+  } catch(err){
+    $('empty').hidden = false; $('result').hidden = true;
+    $('empty').classList.add('error'); $('empty').textContent = err.message;
+  } finally {
+    $('run').disabled = false; $('run').textContent = 'Run live pre-flight';
+  }
+});
+loadHealth();
+</script>
+</body>
+</html>
