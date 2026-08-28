@@ -1,0 +1,1 @@
+"""SetWatch application package."""
