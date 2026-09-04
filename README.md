@@ -119,9 +119,11 @@ Demo mode is visibly labelled in the UI and never masquerades as a qualifying li
 pytest
 ```
 
-## Submission readiness
+## Live qualification and deployment
 
-See [`docs/JUDGING.md`](docs/JUDGING.md) for the explicit competition requirements and evidence we intend to expose to judges.
+Run `python scripts/live_agent_smoke.py` with Google Cloud and Parallel credentials to exercise the complete qualifying path. On Windows, `scripts/deploy_cloud_run.ps1` enables the required services, stores the Parallel key in Secret Manager, creates the runtime identity, and deploys the service.
+
+See [`docs/LIVE_RUN.md`](docs/LIVE_RUN.md) for the exact live gate and [`docs/JUDGING.md`](docs/JUDGING.md) for submission controls.
 
 ## Licence
 
