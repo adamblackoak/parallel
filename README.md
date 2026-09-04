@@ -4,11 +4,13 @@
 
 SetWatch turns a call sheet or production plan into a live, evidence-backed risk brief before the unit commits people, equipment, and money to the day.
 
-A producer pastes tomorrow's plan. A Gemini agent identifies the external assumptions that can change underneath it — location access, public events, transport disruption, local restrictions, weather-sensitive access, permit conditions, venue status, or other time-bound dependencies. SetWatch researches those assumptions through the **Parallel Search API at runtime**, evaluates the evidence with **Gemini on Google Cloud**, and returns a prioritised board of:
+A producer pastes tomorrow's plan. A Gemini agent identifies the external assumptions that can change underneath it — location access, public events, transport disruption, local restrictions, weather-sensitive access, permit conditions, venue status, or other time-bound dependencies. SetWatch then uses the **Parallel Search API at runtime to test those assumptions against the current open web**, and Gemini on Google Cloud translates the resulting evidence into a prioritised board of:
 
 - **GO** — no material live contradiction found;
 - **VERIFY** — evidence is incomplete, ambiguous, or time-sensitive;
 - **CHANGE** — current evidence conflicts with the plan strongly enough to require action.
+
+The core promise depends on Parallel: without live web search, SetWatch can read a plan but cannot perform the pre-flight check it exists to provide. The decisive moment is when fresh, traceable Parallel evidence changes what the production team should do.
 
 Every material finding carries its source trail. A re-check can compare the new evidence with the previous snapshot so the user sees **what changed**, rather than receiving another undifferentiated research dump.
 
@@ -34,6 +36,18 @@ Runtime stack:
 
 No non-Google AI model or agent framework is used.
 
+## Why Parallel is central
+
+SetWatch is not using web search as a decorative enrichment step. The runtime sequence is:
+
+1. Gemini identifies the **few external assumptions that could invalidate the production plan**.
+2. Parallel Search retrieves current, traceable evidence from the open web for those assumptions.
+3. Gemini evaluates only that retrieved evidence and maps it to an operational consequence.
+4. The result becomes GO / VERIFY / CHANGE, with the source trail attached.
+5. A later run can repeat the live search and surface a materially changed condition.
+
+This makes Parallel the live-evidence layer that turns a static production document into a current pre-flight decision surface.
+
 ## Architecture
 
 ```text
@@ -45,7 +59,7 @@ Gemini / ADK agent
   - decides what must be researched
       |
       v
-Parallel Search API  <---- required live partner integration
+Parallel Search API  <---- indispensable live evidence layer
   - current web evidence
   - URLs, titles, excerpts, dates
       |
@@ -123,7 +137,7 @@ pytest
 
 Run `python scripts/live_agent_smoke.py` with Google Cloud and Parallel credentials to exercise the complete qualifying path. On Windows, `scripts/deploy_cloud_run.ps1` enables the required services, stores the Parallel key in Secret Manager, creates the runtime identity, and deploys the service.
 
-See [`docs/LIVE_RUN.md`](docs/LIVE_RUN.md) for the exact live gate and [`docs/JUDGING.md`](docs/JUDGING.md) for submission controls.
+See [`docs/LIVE_RUN.md`](docs/LIVE_RUN.md) for the exact live gate and [`docs/JUDGING.md`](docs/JUDGING.md) for the competition sign-off controls, including the partner-indispensability and judge-facing demo gates.
 
 ## Licence
 
