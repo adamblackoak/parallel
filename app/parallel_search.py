@@ -5,6 +5,7 @@ from typing import Any
 from parallel import Parallel
 
 from app.config import get_settings
+from app.trace import record_partner_search
 
 
 def _demo_results(objective: str, search_queries: list[str]) -> dict[str, Any]:
@@ -36,21 +37,15 @@ def _demo_results(objective: str, search_queries: list[str]) -> dict[str, Any]:
 
 
 def parallel_live_search(objective: str, search_queries: list[str]) -> dict[str, Any]:
-    """Search the live web with Parallel for time-sensitive production evidence.
-
-    Use this tool whenever the production plan contains an external assumption that
-    may have changed. Supply one precise natural-language objective and 2-4 short,
-    diverse search queries. Do not use it for facts already contained in the plan.
-    """
+    """Search the live web with Parallel for time-sensitive production evidence."""
     settings = get_settings()
-
     cleaned_queries = [q.strip() for q in search_queries if q and q.strip()][:4]
     if not cleaned_queries:
         raise ValueError("At least one non-empty search query is required")
-
     if settings.demo_mode:
-        return _demo_results(objective, cleaned_queries)
-
+        response = _demo_results(objective, cleaned_queries)
+        record_partner_search(response)
+        return response
     if not settings.parallel_api_key:
         raise RuntimeError("PARALLEL_API_KEY is required for a live SetWatch run")
 
@@ -60,7 +55,6 @@ def parallel_live_search(objective: str, search_queries: list[str]) -> dict[str,
         search_queries=cleaned_queries,
         mode=settings.search_mode,
     )
-
     results: list[dict[str, Any]] = []
     for item in list(search.results)[: settings.max_search_results]:
         results.append(
@@ -71,11 +65,12 @@ def parallel_live_search(objective: str, search_queries: list[str]) -> dict[str,
                 "excerpts": list(getattr(item, "excerpts", []) or []),
             }
         )
-
-    return {
+    response = {
         "mode": "LIVE_PARALLEL_SEARCH",
         "objective": objective,
         "search_queries": cleaned_queries,
         "search_id": getattr(search, "search_id", None),
         "results": results,
     }
+    record_partner_search(response)
+    return response
