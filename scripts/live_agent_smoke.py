@@ -29,7 +29,9 @@ async def main() -> None:
 
     outcome = await run_setwatch(
         "Run a SetWatch pre-flight check. Use live Parallel Search before reaching "
-        f"a conclusion.\n\nPRODUCTION PLAN\n{PLAN}"
+        f"a conclusion.\n\nPRODUCTION PLAN\n{PLAN}",
+        production_plan=PLAN,
+        location_context="central London, UK",
     )
     payload = {
         "result": outcome.result.model_dump(mode="json"),

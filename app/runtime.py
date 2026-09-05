@@ -132,7 +132,69 @@ def _demo_result() -> SetWatchResult:
     )
 
 
-async def run_setwatch(prompt: str) -> RunOutcome:
+def _mandatory_search_request(
+    prompt: str,
+    *,
+    production_plan: str | None = None,
+    production_date: str | None = None,
+    location_context: str | None = None,
+) -> tuple[str, list[str]]:
+    """Build the baseline Parallel request that every live run must execute."""
+    compact_plan = " ".join((production_plan or prompt).split())
+    compact_location = " ".join((location_context or "").split())
+    target = compact_location or compact_plan[:160]
+    date = production_date.strip() if production_date else "current"
+    search_subject = f"{target} {date}".strip()
+    objective = (
+        "Find current, directly relevant evidence that could confirm or contradict "
+        "the production plan's assumptions about location access, closures, public "
+        f"events, transport, filming restrictions and weather. Target: {target}. "
+        f"Production date: {date}."
+    )
+    queries = [
+        f"{search_subject} closures access restrictions",
+        f"{search_subject} public events transport disruption",
+        f"{search_subject} opening hours filming permit vehicle access",
+        f"{search_subject} weather warnings",
+    ]
+    return objective, queries
+
+
+async def _run_agent_text(agent: Any, prompt: str, app_name: str = APP_NAME) -> str:
+    runner = InMemoryRunner(app_name=app_name, agent=agent)
+    user_id = f"web-{uuid.uuid4().hex[:12]}"
+    session = await runner.session_service.create_session(
+        app_name=app_name, user_id=user_id
+    )
+    message = types.Content(role="user", parts=[types.Part.from_text(text=prompt)])
+    final_text = ""
+    async for event in runner.run_async(
+        user_id=user_id,
+        session_id=session.id,
+        new_message=message,
+    ):
+        if event.content and event.content.parts:
+            text_parts = [
+                part.text for part in event.content.parts if getattr(part, "text", None)
+            ]
+            if text_parts and (
+                event.is_final_response()
+                if hasattr(event, "is_final_response")
+                else True
+            ):
+                final_text = "\n".join(text_parts)
+    if not final_text:
+        raise RuntimeError("SetWatch agent completed without a final response")
+    return final_text
+
+
+async def run_setwatch(
+    prompt: str,
+    *,
+    production_plan: str | None = None,
+    production_date: str | None = None,
+    location_context: str | None = None,
+) -> RunOutcome:
     settings = get_settings()
     run_id = f"sw-{uuid.uuid4().hex[:16]}"
     trace_token = start_trace()
@@ -143,32 +205,23 @@ async def run_setwatch(prompt: str) -> RunOutcome:
             validated = True
             integrity = "degraded"
         else:
-            runner = InMemoryRunner(app_name=APP_NAME, agent=root_agent)
-            user_id = f"web-{uuid.uuid4().hex[:12]}"
-            session = await runner.session_service.create_session(
-                app_name=APP_NAME, user_id=user_id
+            objective, search_queries = _mandatory_search_request(
+                prompt,
+                production_plan=production_plan,
+                production_date=production_date,
+                location_context=location_context,
             )
-            message = types.Content(role="user", parts=[types.Part.from_text(text=prompt)])
-            final_text = ""
-            async for event in runner.run_async(
-                user_id=user_id,
-                session_id=session.id,
-                new_message=message,
-            ):
-                if event.content and event.content.parts:
-                    text_parts = [
-                        part.text
-                        for part in event.content.parts
-                        if getattr(part, "text", None)
-                    ]
-                    if text_parts and (
-                        event.is_final_response()
-                        if hasattr(event, "is_final_response")
-                        else True
-                    ):
-                        final_text = "\n".join(text_parts)
-            if not final_text:
-                raise RuntimeError("SetWatch agent completed without a final response")
+            evidence = parallel_live_search(objective, search_queries)
+            evidence_json = json.dumps(evidence, ensure_ascii=False, default=str)
+            evidence_prompt = (
+                f"{prompt}\n\n"
+                "MANDATORY PARALLEL EVIDENCE\n"
+                "This evidence packet was retrieved live by the SetWatch runtime. "
+                "Use only supported claims, distinguish evidence from inference, and "
+                "cite only source URLs present in this packet or in any additional "
+                f"Parallel tool result.\n{evidence_json}"
+            )
+            final_text = await _run_agent_text(root_agent, evidence_prompt)
 
             traces = current_traces()
             live_traces = [t for t in traces if t.get("mode") == "LIVE_PARALLEL_SEARCH"]

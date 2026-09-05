@@ -10,7 +10,7 @@ A producer pastes tomorrow's plan. A Gemini agent identifies the external assump
 - **VERIFY** — evidence is incomplete, ambiguous, or time-sensitive;
 - **CHANGE** — current evidence conflicts with the plan strongly enough to require action.
 
-The core promise depends on Parallel: without live web search, SetWatch can read a plan but cannot perform the pre-flight check it exists to provide. The decisive moment is when fresh, traceable Parallel evidence changes what the production team should do.
+The core promise depends on Parallel: without live web search, SetWatch can read a plan but cannot perform the pre-flight check it exists to provide. Every live check therefore executes a mandatory Parallel search before Gemini is allowed to produce the risk brief. The decisive moment is when fresh, traceable Parallel evidence changes what the production team should do.
 
 Every material finding carries its source trail. A re-check can compare the new evidence with the previous snapshot so the user sees **what changed**, rather than receiving another undifferentiated research dump.
 
@@ -40,9 +40,9 @@ No non-Google AI model or agent framework is used.
 
 SetWatch is not using web search as a decorative enrichment step. The runtime sequence is:
 
-1. Gemini identifies the **few external assumptions that could invalidate the production plan**.
-2. Parallel Search retrieves current, traceable evidence from the open web for those assumptions.
-3. Gemini evaluates only that retrieved evidence and maps it to an operational consequence.
+1. SetWatch derives a focused baseline search packet from the production plan, date and location.
+2. Parallel Search is called directly and mandatorily at runtime to retrieve current, traceable evidence.
+3. Gemini on Google ADK evaluates that retrieved evidence, identifies the material assumptions and maps them to operational consequences. It can request additional Parallel searches for distinct gaps.
 4. The result becomes GO / VERIFY / CHANGE, with the source trail attached.
 5. A later run can repeat the live search and surface a materially changed condition.
 
@@ -54,17 +54,13 @@ This makes Parallel the live-evidence layer that turns a static production docum
 Production plan
       |
       v
-Gemini / ADK agent
-  - extracts live assumptions
-  - decides what must be researched
-      |
-      v
-Parallel Search API  <---- indispensable live evidence layer
+Mandatory Parallel Search API  <---- indispensable live evidence layer
   - current web evidence
   - URLs, titles, excerpts, dates
       |
       v
 Gemini / ADK agent
+  - identifies material assumptions
   - evidence discipline
   - operational consequence
   - GO / VERIFY / CHANGE
@@ -103,7 +99,7 @@ GEMINI_MODEL=gemini-2.5-flash
 PARALLEL_API_KEY=...
 ```
 
-The Parallel integration is implemented in `app/parallel_search.py` and is actually invoked by the agent tool at runtime; it is not a README-only integration.
+The Parallel integration is implemented in `app/parallel_search.py` and is directly invoked by the live runtime before Gemini evaluates the plan; it is not optional model behaviour or a README-only integration.
 
 ## Cloud Run
 

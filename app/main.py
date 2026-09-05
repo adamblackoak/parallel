@@ -65,7 +65,12 @@ async def check_plan(request: CheckRequest) -> CheckResponse:
         f"PRODUCTION PLAN\n{request.plan}"
     )
     try:
-        outcome = await run_setwatch(prompt)
+        outcome = await run_setwatch(
+            prompt,
+            production_plan=request.plan,
+            production_date=request.production_date,
+            location_context=request.location_context,
+        )
     except Exception as exc:
         raise HTTPException(status_code=502, detail=f"Agent run failed: {type(exc).__name__}: {exc}") from exc
     return CheckResponse(
