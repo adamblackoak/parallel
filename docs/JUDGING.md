@@ -26,7 +26,7 @@ The GroundPitch result is now treated as calibration evidence: strong implementa
 | Google Cloud runtime use visible in source | `google-adk` imported and executed in `app/agent.py` / `app/runtime.py` | Deploy against Vertex AI / Google Cloud credentials |
 | Parallel runtime use visible in source | `parallel-web` imported and `client.search(...)` called in `app/parallel_search.py` | Configure live `PARALLEL_API_KEY`; show qualifying run |
 | Web / Android / iOS | FastAPI web app | Host on Cloud Run and submit live URL |
-| Public open-source repository | Apache-2.0 `LICENSE` present | **Repository is intentionally private during build; make public before submission** |
+| Public open-source repository | Repository is public; Apache-2.0 `LICENSE` present and detected | Keep public through judging and verify final repository URL logged-out |
 | Complete run instructions | README + env template + Dockerfile | Verify from a clean environment |
 | Demo video <= 3 minutes | Not yet recorded | Record after hosted live run is stable |
 | Public YouTube/Vimeo demo | Not yet uploaded | Complete during packaging |
@@ -163,6 +163,6 @@ Therefore:
 6. complete judge-facing UI polish using real runtime behaviour;
 7. add repeatable contradiction/uncertainty/change fixtures and capture QA evidence;
 8. run the partner-indispensability gate and independent competitive review;
-9. make repository public and verify licence detection;
+9. verify the public repository and detected licence from a logged-out context;
 10. record <=3 minute functional demo with the first 45 seconds passing the judge-facing test;
 11. complete Devpost copy around the sponsor-specific value, then final independent QA/QC review.
