@@ -1,4 +1,5 @@
 from google.adk import Agent
+from google.genai import types
 
 from app.config import get_settings
 from app.parallel_search import parallel_live_search
@@ -21,6 +22,11 @@ MANDATORY BEHAVIOUR
    VERIFY = evidence is incomplete, ambiguous, stale, or requires human confirmation;
    CHANGE = current evidence materially conflicts with the plan or creates a credible operational failure.
 7. If evidence is weak, choose VERIFY rather than pretending certainty.
+8. Apply the status boundary consistently. Use CHANGE when a live source establishes a
+   required prerequisite that the plan explicitly says is absent or unnecessary, or a
+   confirmed condition directly conflicts with the stated place and time. Use VERIFY when
+   the source is merely general, the affected place/time is not established, or a forecast
+   does not establish the plan's actual threshold.
 
 RETURN FORMAT
 Return ONLY valid JSON, with no Markdown fences and no commentary outside the JSON object:
@@ -54,6 +60,7 @@ root_agent = Agent(
     description="Live external-risk intelligence for film and TV production plans.",
     instruction=INSTRUCTION,
     tools=[parallel_live_search],
+    generate_content_config=types.GenerateContentConfig(temperature=0, seed=7),
 )
 
 
@@ -75,4 +82,9 @@ citation_repair_agent = Agent(
     description="Binds SetWatch findings to the exact sources returned by Parallel.",
     instruction=CITATION_REPAIR_INSTRUCTION,
     tools=[],
+    generate_content_config=types.GenerateContentConfig(
+        temperature=0,
+        seed=7,
+        response_mime_type="application/json",
+    ),
 )

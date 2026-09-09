@@ -1,5 +1,6 @@
 import pytest
 
+from app.agent import citation_repair_agent, root_agent
 from app.config import get_settings
 from app.runtime import (
     _citation_repair_prompt,
@@ -109,6 +110,14 @@ def test_mandatory_search_request_uses_location_and_date():
     assert "2026-09-06" in objective
     assert len(queries) == 4
     assert all("Stonehenge visitor area" in query for query in queries)
+    assert "filming permits" in queries[0]
+
+
+def test_agents_use_deterministic_generation_settings():
+    assert root_agent.generate_content_config.temperature == 0
+    assert root_agent.generate_content_config.seed == 7
+    assert citation_repair_agent.generate_content_config.temperature == 0
+    assert citation_repair_agent.generate_content_config.seed == 7
 
 
 @pytest.mark.asyncio

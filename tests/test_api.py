@@ -75,3 +75,4 @@ def test_browser_comparison_is_opt_in_and_legacy_snapshot_is_retired():
     assert 'id="compare" type="checkbox" disabled' in body
     assert "compare_with_previous:compare" in body
     assert "localStorage.removeItem(legacyPreviousKey)" in body
+    assert "No filming permit or parking dispensation has been arranged" in body

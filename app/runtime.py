@@ -214,7 +214,7 @@ def _mandatory_search_request(
         f"Production date: {date}."
     )
     queries = [
-        f"{search_subject} official road closures traffic vehicle loading access",
+        f"{search_subject} official filming permits parking dispensations vehicle loading access",
         f"{search_subject} official public events crowds road closures",
         f"{search_subject} official rail station transport disruption",
         f"{search_subject} official Met Office weather warning forecast",
