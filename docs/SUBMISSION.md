@@ -74,21 +74,45 @@ The useful unit of live web research is not "everything related to this plan". I
 
 The natural extension is scheduled re-checking as a production date approaches, followed by integrations with call-sheet and production-management systems so changed external conditions can be surfaced without requiring teams to manually re-enter the plan.
 
-## Demo video: target 2:15 to 2:40
+## Demo video: target 2:10 to 2:30
 
-**0:00-0:15 — problem.** Show the production plan. State: "Call sheets are static; the outside world is not. SetWatch checks the assumptions that can make tomorrow fail."
+Start with a hard refresh, then click **Load scenario**. That action clears saved comparison
+state, leaves comparison visibly off, and loads tomorrow's date. Do not enable comparison in
+the main submission recording.
 
-**0:15-0:35 — run.** Trigger the live pre-flight. Keep the runtime badge visible so the judge can see the live Gemini / Parallel configuration.
+**0:00-0:20 — problem.** Show the loaded plan and say: "A call sheet is static, but the
+outside world is not. Here, a central London unit has an early exterior, two 7.5-tonne trucks,
+rail-dependent crew and limited rain cover. Crucially, the plan assumes no filming permit or
+parking dispensation is required. SetWatch checks whether the live world supports that plan."
 
-**0:35-1:15 — decisive result.** Land immediately on one VERIFY or CHANGE finding. Show the exact external assumption, current evidence and operational consequence. This is the sponsor moment.
+**0:20-0:35 — run.** Say: "It converts the plan into falsifiable external assumptions and
+researches them through Parallel before Gemini is allowed to decide." Click **Run live
+pre-flight**. Show two or three seconds of the live wait, then cut to the completed result.
 
-**1:15-1:40 — proof.** Show the attached sources and Runtime evidence panel, including the live Parallel search trace/search id. Do not linger on implementation details.
+**0:35-1:15 — decisive result.** Say: "The answer is CHANGE. The plan explicitly says no
+permit or parking dispensation has been arranged, while the live City of London evidence says
+those permissions are required. That is not generic web research; it changes what production
+must do before dispatch." Show the permit/dispensation finding and its source.
 
-**1:40-2:05 — changing world.** Show the previous-run/change behaviour or briefly explain it using a prepared second state. The point is that SetWatch distinguishes changed conditions rather than simply rerunning generic research.
+**1:15-1:40 — disciplined reasoning.** Move across **Evidence, Inference, Consequence and
+Action** and say: "SetWatch keeps retrieved evidence separate from inference, explains the
+production consequence, and gives a bounded action. Where road, rail or weather evidence is
+not specific enough to establish the exact operational threshold, it says VERIFY rather than
+manufacturing certainty." Describe only the secondary findings actually visible in the run.
 
-**2:05-2:25 — architecture.** One compact diagram or repo view: mandatory Parallel Search -> Gemini / ADK -> bounded decision board -> Cloud Run.
+**1:40-2:05 — proof.** Show the attached links and Runtime evidence panel. Say: "Every live
+run requires Parallel first. This is the recorded LIVE_PARALLEL_SEARCH trace, the real search
+ID, the retrieved-result count and the exact queries. The output is schema-validated and its
+evidence integrity is verified."
 
-**2:25-end — close.** "Parallel turns the static plan into live evidence. SetWatch turns that evidence into a production decision before the trucks roll."
+**2:05-end — close.** Say: "Parallel establishes the current evidence surface. Gemini on
+Google ADK maps it to operational consequence, and SetWatch returns a bounded GO, VERIFY or
+CHANGE decision on Google Cloud. The call sheet tells you what tomorrow is supposed to look
+like. SetWatch checks whether the world still agrees."
+
+The number and wording of secondary findings may change with the live web. Do not narrate a
+specific rail, event or weather conclusion until it is visible. The permit/dispensation
+contradiction is the stable demonstration anchor.
 
 ## Final submission gate
 
