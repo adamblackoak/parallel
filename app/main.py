@@ -14,6 +14,10 @@ app = FastAPI(title="SetWatch", version="0.1.0")
 STATIC_DIR = Path(__file__).parent / "static"
 
 
+def _requested_previous_snapshot(request: CheckRequest) -> dict | None:
+    return request.previous_snapshot if request.compare_with_previous else None
+
+
 @app.get("/")
 async def index() -> FileResponse:
     return FileResponse(STATIC_DIR / "index.html")
@@ -53,10 +57,11 @@ async def check_plan(request: CheckRequest) -> CheckResponse:
             status_code=503,
             detail=f"Live SetWatch is not configured: missing {', '.join(missing)}",
         )
+    previous_snapshot = _requested_previous_snapshot(request)
     context = {
         "production_date": request.production_date,
         "location_context": request.location_context,
-        "previous_snapshot": request.previous_snapshot,
+        "previous_snapshot": previous_snapshot,
     }
     prompt = (
         "Run a SetWatch pre-flight check on the production plan below. "

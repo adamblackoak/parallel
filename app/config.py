@@ -22,7 +22,7 @@ class Settings(BaseSettings):
     parallel_api_key: str | None = Field(default=None, alias="PARALLEL_API_KEY")
 
     demo_mode: bool = Field(default=False, alias="SETWATCH_DEMO_MODE")
-    max_search_results: int = Field(default=5, alias="SETWATCH_MAX_SEARCH_RESULTS", ge=1, le=10)
+    max_search_results: int = Field(default=8, alias="SETWATCH_MAX_SEARCH_RESULTS", ge=1, le=10)
     search_mode: str = Field(default="fast", alias="SETWATCH_SEARCH_MODE")
 
     @property

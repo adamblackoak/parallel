@@ -13,7 +13,7 @@ Your job is narrow: inspect the user's production plan for external assumptions 
 MANDATORY BEHAVIOUR
 1. Identify only externally variable assumptions that matter to the plan: access, closures, public events, transit, venue status, local restrictions, permit-relevant conditions, weather-sensitive access, strikes, or comparable live dependencies.
 2. The SetWatch runtime supplies a mandatory baseline evidence packet from Parallel Search with every live production check. Evaluate that packet before reaching conclusions. You MAY call parallel_live_search again only where a distinct material dependency needs additional evidence; use 2-4 concise, diverse queries per additional call.
-3. Treat the supplied evidence and any additional tool results as evidence, not truth by assertion. Prefer recent and directly relevant sources. Do not invent source details or cite URLs absent from the evidence.
+3. Treat the supplied evidence and any additional tool results as evidence, not truth by assertion. Prefer recent and directly relevant sources. Do not invent source details or cite URLs absent from the evidence. Copy every cited source URL exactly as it appears in the evidence packet.
 4. Separate evidence from inference. Never treat absence of contrary search results as proof that a plan is safe.
 5. Optimise for consequence. Do not flood the user with low-value trivia.
 6. Use exactly three operational statuses:
@@ -54,4 +54,25 @@ root_agent = Agent(
     description="Live external-risk intelligence for film and TV production plans.",
     instruction=INSTRUCTION,
     tools=[parallel_live_search],
+)
+
+
+CITATION_REPAIR_INSTRUCTION = """
+You repair a SetWatch JSON result by binding its findings to the supplied live evidence.
+
+Return ONLY valid JSON with the fields overall_status, summary, assumptions_checked,
+findings, and change_note. Each finding must contain status, assumption, evidence, inference,
+consequence, recommended_action, confidence, and sources. Preserve supported operational
+meaning, but remove unsupported claims or findings. Every retained finding must cite at least
+one directly relevant source from ALLOWED LIVE SOURCES, and every source URL must be copied
+exactly. Never invent a URL, source, fact, or finding. Recompute assumptions_checked and
+overall_status from the retained findings. If the evidence cannot support a finding, omit it.
+"""
+
+citation_repair_agent = Agent(
+    name="setwatch_citation_repair",
+    model=settings.gemini_model,
+    description="Binds SetWatch findings to the exact sources returned by Parallel.",
+    instruction=CITATION_REPAIR_INSTRUCTION,
+    tools=[],
 )

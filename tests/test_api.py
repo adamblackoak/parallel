@@ -1,7 +1,8 @@
 from fastapi.testclient import TestClient
 
 from app.config import get_settings
-from app.main import app
+from app.main import _requested_previous_snapshot, app
+from app.models import CheckRequest
 
 
 def test_health_exposes_configuration_without_secrets(monkeypatch):
@@ -48,3 +49,29 @@ def test_live_api_refuses_unconfigured_run(monkeypatch):
     assert response.status_code == 503
     assert "PARALLEL_API_KEY" in response.json()["detail"]
     get_settings.cache_clear()
+
+
+def test_previous_snapshot_is_ignored_without_explicit_comparison():
+    stale = {"summary": "Stonehenge stale result"}
+    request = CheckRequest(
+        plan="Exterior filming with truck access required before first light.",
+        previous_snapshot=stale,
+    )
+    assert _requested_previous_snapshot(request) is None
+
+
+def test_previous_snapshot_is_used_only_with_explicit_comparison():
+    stale = {"summary": "Stonehenge stale result"}
+    request = CheckRequest(
+        plan="Exterior filming with truck access required before first light.",
+        compare_with_previous=True,
+        previous_snapshot=stale,
+    )
+    assert _requested_previous_snapshot(request) == stale
+
+
+def test_browser_comparison_is_opt_in_and_legacy_snapshot_is_retired():
+    body = TestClient(app).get("/").text
+    assert 'id="compare" type="checkbox" disabled' in body
+    assert "compare_with_previous:compare" in body
+    assert "localStorage.removeItem(legacyPreviousKey)" in body

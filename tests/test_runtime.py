@@ -2,8 +2,10 @@ import pytest
 
 from app.config import get_settings
 from app.runtime import (
+    _citation_repair_prompt,
     _extract_json,
     _mandatory_search_request,
+    _source_key,
     _validated_result,
     run_setwatch,
 )
@@ -67,6 +69,27 @@ def test_validation_rejects_model_invented_source():
     assert result.findings[0].confidence == "low"
 
 
+def test_validation_accepts_equivalent_source_url_and_uses_trace_metadata():
+    trace = _trace("https://EXAMPLE.com/notice/?utm_source=parallel")
+    result, valid, integrity = _validated_result(
+        _payload("http://example.com/notice#details"), trace
+    )
+    assert valid is True
+    assert integrity == "verified"
+    assert result.findings[0].sources[0].url == trace[0]["sources"][0]["url"]
+
+
+def test_source_key_preserves_meaningful_query_and_drops_tracking():
+    assert _source_key("https://Example.com/a/?id=2&utm_campaign=x#top") == "example.com/a?id=2"
+    assert _source_key("https://example.com:bad/a") == ""
+
+
+def test_citation_repair_prompt_contains_only_recorded_sources():
+    prompt = _citation_repair_prompt("candidate", _trace())
+    assert "candidate" in prompt
+    assert "https://example.com/notice" in prompt
+
+
 def test_invalid_output_fails_conservatively():
     result, valid, integrity = _validated_result("not json", _trace())
     assert valid is False
@@ -93,6 +116,48 @@ async def test_live_run_calls_parallel_before_gemini(monkeypatch):
     monkeypatch.setenv("SETWATCH_DEMO_MODE", "false")
     monkeypatch.setenv("PARALLEL_API_KEY", "test-key")
     monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "test-project")
+    get_settings.cache_clear()
+
+
+@pytest.mark.asyncio
+async def test_live_run_repairs_missing_citations_once(monkeypatch):
+    monkeypatch.setenv("SETWATCH_DEMO_MODE", "false")
+    monkeypatch.setenv("PARALLEL_API_KEY", "test-key")
+    monkeypatch.setenv("GOOGLE_CLOUD_PROJECT", "test-project")
+    get_settings.cache_clear()
+    calls: list[str] = []
+
+    def fake_search(objective: str, search_queries: list[str]):
+        from app.trace import record_partner_search
+
+        response = {
+            "mode": "LIVE_PARALLEL_SEARCH",
+            "objective": objective,
+            "search_queries": search_queries,
+            "search_id": "search-repair",
+            "results": [{
+                "title": "Current notice",
+                "url": "https://example.com/notice",
+                "publish_date": None,
+                "excerpts": ["Access requires confirmation."],
+            }],
+        }
+        record_partner_search(response)
+        return response
+
+    async def fake_agent_text(agent, prompt: str, app_name: str = "setwatch"):
+        calls.append(app_name)
+        if len(calls) == 1:
+            return _payload("https://invented.example/claim", finding="CHANGE")
+        assert "ALLOWED LIVE SOURCES" in prompt
+        return _payload("https://example.com/notice", finding="CHANGE")
+
+    monkeypatch.setattr("app.runtime.parallel_live_search", fake_search)
+    monkeypatch.setattr("app.runtime._run_agent_text", fake_agent_text)
+    outcome = await run_setwatch("A sufficiently detailed live production plan.")
+    assert calls == ["setwatch", "setwatch-citation-repair"]
+    assert outcome.meta.evidence_integrity == "verified"
+    assert outcome.result.overall_status == "CHANGE"
     get_settings.cache_clear()
     calls: list[str] = []
 

@@ -21,6 +21,7 @@ def record_partner_search(search: dict[str, Any]) -> None:
             "publish_date": (
                 str(item["publish_date"]) if item.get("publish_date") is not None else None
             ),
+            "excerpts": [str(value)[:800] for value in (item.get("excerpts") or [])[:3]],
         }
         for item in results
         if item.get("url")

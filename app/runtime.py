@@ -4,19 +4,22 @@ import json
 import uuid
 from dataclasses import dataclass
 from typing import Any
+from urllib.parse import parse_qsl, urlencode, urlsplit
 
 from google.adk.runners import InMemoryRunner
 from google.genai import types
 from pydantic import ValidationError
 
-from app.agent import root_agent
+from app.agent import citation_repair_agent, root_agent
 from app.config import get_settings
-from app.models import PartnerTrace, RunMeta, SetWatchResult
+from app.models import PartnerTrace, RunMeta, SetWatchResult, Source
 from app.parallel_search import parallel_live_search
 from app.trace import close_trace, current_traces, start_trace
 
 APP_NAME = "setwatch"
 STATUS_RANK = {"GO": 0, "VERIFY": 1, "CHANGE": 2}
+TRACKING_QUERY_PREFIXES = ("utm_",)
+TRACKING_QUERY_KEYS = {"fbclid", "gclid", "mc_cid", "mc_eid"}
 
 
 @dataclass(frozen=True)
@@ -59,6 +62,36 @@ def _conservative_result(raw_response: str) -> SetWatchResult:
     )
 
 
+def _source_key(url: str) -> str:
+    """Canonical key for matching a model citation to a Parallel result."""
+    try:
+        parsed = urlsplit(url.strip())
+    except (TypeError, ValueError):
+        return ""
+    host = (parsed.hostname or "").lower()
+    if not host:
+        return ""
+    try:
+        port = parsed.port
+    except ValueError:
+        return ""
+    is_default_port = (parsed.scheme.lower(), port) in {("https", 443), ("http", 80)}
+    if port and not is_default_port:
+        host = f"{host}:{port}"
+    path = parsed.path or "/"
+    if path != "/":
+        path = path.rstrip("/")
+    query = urlencode(
+        sorted(
+            (key, value)
+            for key, value in parse_qsl(parsed.query, keep_blank_values=True)
+            if key.lower() not in TRACKING_QUERY_KEYS
+            and not key.lower().startswith(TRACKING_QUERY_PREFIXES)
+        )
+    )
+    return f"{host}{path}" + (f"?{query}" if query else "")
+
+
 def _validated_result(
     raw_response: str, traces: list[dict[str, Any]]
 ) -> tuple[SetWatchResult, bool, str]:
@@ -70,16 +103,30 @@ def _validated_result(
     except ValidationError:
         return _conservative_result(raw_response), False, "degraded"
 
-    allowed_urls = {
-        source["url"]
+    allowed_sources = {
+        _source_key(source["url"]): source
         for trace in traces
         for source in trace.get("sources", [])
-        if source.get("url")
+        if source.get("url") and _source_key(source["url"])
     }
     integrity_degraded = False
     for finding in result.findings:
         cited = finding.sources
-        finding.sources = [source for source in cited if source.url in allowed_urls]
+        matched_sources = []
+        matched_keys = set()
+        for source in cited:
+            key = _source_key(source.url)
+            allowed = allowed_sources.get(key)
+            if allowed and key not in matched_keys:
+                matched_sources.append(
+                    Source(
+                        title=allowed.get("title") or source.title,
+                        url=allowed["url"],
+                        publish_date=allowed.get("publish_date"),
+                    )
+                )
+                matched_keys.add(key)
+        finding.sources = matched_sources
         if len(finding.sources) != len(cited):
             integrity_degraded = True
         if not finding.sources:
@@ -97,6 +144,21 @@ def _validated_result(
         integrity_degraded = True
 
     return result, True, "degraded" if integrity_degraded else "verified"
+
+
+def _citation_repair_prompt(raw_response: str, traces: list[dict[str, Any]]) -> str:
+    allowed_sources = [
+        source
+        for trace in traces
+        for source in trace.get("sources", [])
+        if source.get("url")
+    ]
+    return (
+        "Repair the candidate SetWatch result using only the evidence supplied below.\n\n"
+        f"CANDIDATE RESULT\n{raw_response}\n\n"
+        "ALLOWED LIVE SOURCES\n"
+        f"{json.dumps(allowed_sources, ensure_ascii=False, default=str)}"
+    )
 
 
 def _demo_result() -> SetWatchResult:
@@ -152,10 +214,10 @@ def _mandatory_search_request(
         f"Production date: {date}."
     )
     queries = [
-        f"{search_subject} closures access restrictions",
-        f"{search_subject} public events transport disruption",
-        f"{search_subject} opening hours filming permit vehicle access",
-        f"{search_subject} weather warnings",
+        f"{search_subject} official road closures traffic vehicle loading access",
+        f"{search_subject} official public events crowds road closures",
+        f"{search_subject} official rail station transport disruption",
+        f"{search_subject} official Met Office weather warning forecast",
     ]
     return objective, queries
 
@@ -228,6 +290,23 @@ async def run_setwatch(
             if not live_traces:
                 raise RuntimeError("Qualifying run completed without a live Parallel Search trace")
             result, validated, integrity = _validated_result(final_text, traces)
+            if integrity == "degraded":
+                repair_text = await _run_agent_text(
+                    citation_repair_agent,
+                    _citation_repair_prompt(final_text, traces),
+                    app_name=f"{APP_NAME}-citation-repair",
+                )
+                repaired_result, repaired_validated, repaired_integrity = _validated_result(
+                    repair_text, traces
+                )
+                if repaired_validated and repaired_integrity == "verified":
+                    result = repaired_result
+                    validated = True
+                    integrity = "verified"
+                else:
+                    raise RuntimeError(
+                        "Live evidence could not be bound reliably to the findings; rerun the check."
+                    )
 
         typed_traces = [PartnerTrace.model_validate(trace) for trace in traces]
         meta = RunMeta(
