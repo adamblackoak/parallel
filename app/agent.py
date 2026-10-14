@@ -54,13 +54,27 @@ Return ONLY valid JSON, with no Markdown fences and no commentary outside the JS
 Do not give legal advice, safety certification, permit approval, or a guarantee that a location is available. Where professional confirmation is required, name the confirmation step plainly.
 """
 
+
+def generation_config(model: str, *, json_output: bool = False) -> types.GenerateContentConfig:
+    """Keep the submitted 2.5 settings; use supported controls for Gemini 3."""
+    options = {"response_mime_type": "application/json"} if json_output else {}
+    if model.startswith("gemini-3"):
+        # Flash-Lite defaults to MINIMAL, which can terminate tool loops early.
+        # ADK owns the complete Content/Part history, including thought signatures.
+        return types.GenerateContentConfig(
+            thinking_config=types.ThinkingConfig(thinking_level="MEDIUM"),
+            **options,
+        )
+    return types.GenerateContentConfig(temperature=0, seed=7, **options)
+
+
 root_agent = Agent(
     name="setwatch",
     model=settings.gemini_model,
     description="Live external-risk intelligence for film and TV production plans.",
     instruction=INSTRUCTION,
     tools=[parallel_live_search],
-    generate_content_config=types.GenerateContentConfig(temperature=0, seed=7),
+    generate_content_config=generation_config(settings.gemini_model),
 )
 
 
@@ -82,9 +96,5 @@ citation_repair_agent = Agent(
     description="Binds SetWatch findings to the exact sources returned by Parallel.",
     instruction=CITATION_REPAIR_INSTRUCTION,
     tools=[],
-    generate_content_config=types.GenerateContentConfig(
-        temperature=0,
-        seed=7,
-        response_mime_type="application/json",
-    ),
+    generate_content_config=generation_config(settings.gemini_model, json_output=True),
 )
