@@ -55,8 +55,11 @@ if ($LASTEXITCODE -ne 0) {
 Invoke-Gcloud projects add-iam-policy-binding $ProjectId --member="serviceAccount:$serviceAccountEmail" --role="roles/aiplatform.user" --quiet
 Invoke-Gcloud secrets add-iam-policy-binding $Secret --member="serviceAccount:$serviceAccountEmail" --role="roles/secretmanager.secretAccessor" --project $ProjectId --quiet
 
-Invoke-Gcloud run deploy $Service --source . --region $Region --project $ProjectId --allow-unauthenticated --service-account $serviceAccountEmail --set-env-vars="GOOGLE_CLOUD_PROJECT=$ProjectId,GOOGLE_CLOUD_LOCATION=global,GOOGLE_GENAI_USE_VERTEXAI=true,GEMINI_MODEL=gemini-2.5-flash,SETWATCH_DEMO_MODE=false" --set-secrets="PARALLEL_API_KEY=${Secret}:latest"
+# Historical public judging mode must not be recreated by a standard redeploy.
+# Before deployment, verify service-level Invoker IAM does not grant allUsers/allAuthenticatedUsers.
+Invoke-Gcloud run deploy $Service --source . --region $Region --project $ProjectId --no-allow-unauthenticated --service-account $serviceAccountEmail --set-env-vars="GOOGLE_CLOUD_PROJECT=$ProjectId,GOOGLE_CLOUD_LOCATION=global,GOOGLE_GENAI_USE_VERTEXAI=true,GEMINI_MODEL=gemini-2.5-flash,SETWATCH_DEMO_MODE=false" --set-secrets="PARALLEL_API_KEY=${Secret}:latest"
 
 $serviceUrl = & gcloud run services describe $Service --region $Region --project $ProjectId --format="value(status.url)"
 Write-Host "SetWatch deployed: $serviceUrl"
-Write-Host "Health check: $serviceUrl/health"
+Write-Host "Restricted health check (authenticated only): $serviceUrl/health"
+Write-Host "Check Cloud Run Invoker IAM for any public members before activating paid routes."

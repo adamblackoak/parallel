@@ -143,7 +143,7 @@ def _validated_result(
         result.overall_status = "VERIFY"
         integrity_degraded = True
 
-    return result, True, "degraded" if integrity_degraded else "verified"
+    return result, True, "degraded" if integrity_degraded else "source_bound_not_semantically_verified"
 
 
 def _citation_repair_prompt(raw_response: str, traces: list[dict[str, Any]]) -> str:
@@ -299,10 +299,10 @@ async def run_setwatch(
                 repaired_result, repaired_validated, repaired_integrity = _validated_result(
                     repair_text, traces
                 )
-                if repaired_validated and repaired_integrity == "verified":
+                if repaired_validated and repaired_integrity == "source_bound_not_semantically_verified":
                     result = repaired_result
                     validated = True
-                    integrity = "verified"
+                    integrity = "source_bound_not_semantically_verified"
                 else:
                     raise RuntimeError(
                         "Live evidence could not be bound reliably to the findings; rerun the check."

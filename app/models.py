@@ -49,7 +49,7 @@ class RunMeta(BaseModel):
     partner_runtime: str = "Parallel Search API"
     agent_runtime: str = "Google ADK + Gemini"
     output_validated: bool
-    evidence_integrity: Literal["verified", "degraded"]
+    evidence_integrity: Literal["source_bound_not_semantically_verified", "degraded"]
     partner_search_count: int = Field(ge=0)
     partner_traces: list[PartnerTrace] = Field(default_factory=list)
 

@@ -31,7 +31,7 @@ Runtime stack:
 - Parallel Search API (`parallel-web`)
 - FastAPI web application
 - Google Cloud Run deployment target
-- Optional Firestore snapshot persistence
+- Planned Firestore snapshot persistence (not implemented)
 - Google Secret Manager-compatible environment configuration
 
 No non-Google AI model or agent framework is used.
@@ -138,3 +138,10 @@ See [`docs/LIVE_RUN.md`](docs/LIVE_RUN.md) for the exact live gate and [`docs/JU
 ## Licence
 
 Apache-2.0. See [`LICENSE`](LICENSE).
+
+
+## Post-competition status and claim limits (18 October 2026)
+
+This repository is a historical competition demonstrator, not an approved production service. The 18 October infrastructure audit separately confirmed that anonymous Cloud Run invocation is now refused (403); this code change does not establish any new deployment or access state.
+
+`source_bound_not_semantically_verified` records only that the model's cited URLs correspond to sources in its captured Parallel search traces. It is **not** a finding that the sources entail the model's conclusions, are current, or establish filming access, authorisation, safety, or dispatch clearance. A `GO` remains a provisional research recommendation requiring operational confirmation where appropriate. The comparison feature is browser-local; Firestore persistence is planned, not implemented. Retain the original competition submission and video as historical evidence.
