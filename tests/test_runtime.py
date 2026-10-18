@@ -223,3 +223,25 @@ async def test_demo_run_needs_no_google_credentials(monkeypatch):
     assert outcome.meta.partner_traces[0].mode == "DEMO_NOT_LIVE"
     assert outcome.result.overall_status == "VERIFY"
     get_settings.cache_clear()
+
+
+def test_matching_url_with_contradictory_evidence_is_not_semantically_verified():
+    # Same URL does not establish textual entailment. This test preserves
+    # the currently *unverified* support boundary; it does not certify GO.
+    trace = _trace("https://example.com/permit")
+    trace[0]["sources"][0]["title"] = "Filming permit required"
+    trace[0]["sources"][0]["excerpts"] = ["All filming requires a permit."]
+    candidate = _payload("https://example.com/permit", overall="GO", finding="GO")
+    result, valid, integrity = _validated_result(candidate, trace)
+    assert valid is True
+    assert integrity == "source_bound_not_semantically_verified"
+    # A future independent semantic guard would need to constrain this GO.
+    assert result.overall_status == "GO"
+
+
+def test_older_source_date_cannot_be_certified_current_by_url_matching():
+    trace = _trace("https://example.com/guide")
+    trace[0]["sources"][0]["publish_date"] = "2001-01-01"
+    _, valid, integrity = _validated_result(_payload("https://example.com/guide"), trace)
+    assert valid
+    assert integrity == "source_bound_not_semantically_verified"
