@@ -54,7 +54,7 @@ def test_validation_enforces_worst_status_and_actual_count():
         _payload("https://example.com/notice", overall="GO", finding="CHANGE"), _trace()
     )
     assert valid is True
-    assert integrity == "verified"
+    assert integrity == "source_bound_not_semantically_verified"
     assert result.overall_status == "CHANGE"
     assert result.assumptions_checked == 1
 
@@ -76,7 +76,7 @@ def test_validation_accepts_equivalent_source_url_and_uses_trace_metadata():
         _payload("http://example.com/notice#details"), trace
     )
     assert valid is True
-    assert integrity == "verified"
+    assert integrity == "source_bound_not_semantically_verified"
     assert result.findings[0].sources[0].url == trace[0]["sources"][0]["url"]
 
 
@@ -165,7 +165,7 @@ async def test_live_run_repairs_missing_citations_once(monkeypatch):
     monkeypatch.setattr("app.runtime._run_agent_text", fake_agent_text)
     outcome = await run_setwatch("A sufficiently detailed live production plan.")
     assert calls == ["setwatch", "setwatch-citation-repair"]
-    assert outcome.meta.evidence_integrity == "verified"
+    assert outcome.meta.evidence_integrity == "source_bound_not_semantically_verified"
     assert outcome.result.overall_status == "CHANGE"
     get_settings.cache_clear()
     calls: list[str] = []
