@@ -9,6 +9,9 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        gemini-model: [gemini-2.5-flash, gemini-3.5-flash-lite]
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -20,4 +23,5 @@ jobs:
       - name: Test
         env:
           SETWATCH_DEMO_MODE: "true"
+          GEMINI_MODEL: ${{ matrix.gemini-model }}
         run: pytest -q

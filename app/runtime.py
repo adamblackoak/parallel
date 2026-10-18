@@ -237,7 +237,9 @@ async def _run_agent_text(agent: Any, prompt: str, app_name: str = APP_NAME) -> 
     ):
         if event.content and event.content.parts:
             text_parts = [
-                part.text for part in event.content.parts if getattr(part, "text", None)
+                part.text
+                for part in event.content.parts
+                if getattr(part, "text", None) and not getattr(part, "thought", False)
             ]
             if text_parts and (
                 event.is_final_response()

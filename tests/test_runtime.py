@@ -1,6 +1,6 @@
 import pytest
 
-from app.agent import citation_repair_agent, root_agent
+from app.agent import citation_repair_agent, generation_config, root_agent
 from app.config import get_settings
 from app.runtime import (
     _citation_repair_prompt,
@@ -113,11 +113,12 @@ def test_mandatory_search_request_uses_location_and_date():
     assert "filming permits" in queries[0]
 
 
-def test_agents_use_deterministic_generation_settings():
-    assert root_agent.generate_content_config.temperature == 0
-    assert root_agent.generate_content_config.seed == 7
-    assert citation_repair_agent.generate_content_config.temperature == 0
-    assert citation_repair_agent.generate_content_config.seed == 7
+def test_agents_share_configured_model_and_generation_settings():
+    assert root_agent.model == citation_repair_agent.model
+    assert root_agent.generate_content_config == generation_config(root_agent.model)
+    assert citation_repair_agent.generate_content_config == generation_config(
+        root_agent.model, json_output=True
+    )
 
 
 @pytest.mark.asyncio
