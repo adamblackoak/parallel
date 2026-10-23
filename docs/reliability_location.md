@@ -42,6 +42,36 @@ The board accepts only schema-valid proposals. Citation text, excerpts, page con
 | External mutation | Separate authority gate and observed tool receipt |
 | Explanation | Trace assembled from validated boundary objects |
 
+## Current citation boundary — 11 September 2026
+
+SetWatch currently establishes **citation-origin integrity**. `_validated_result` canonicalises each model-supplied URL, retains it only when that URL occurred in a recorded Parallel search trace, and degrades a finding with no retained source.
+
+That is necessary but not sufficient for claim support. A model can cite a genuine, allowed source whose recorded passage is irrelevant to the finding. URL membership proves where the citation came from; it does not prove that the passage supports the claim.
+
+The next earned property is therefore:
+
+> Every material finding remains explicitly unverified unless at least one recorded passage supports that finding's evidence claim.
+
+### Owning mechanism
+
+This belongs in a separate per-finding support audit over the already recorded Parallel excerpts. The audit may use a model as an evaluator, but its prose or verdict must not directly set board state. A deterministic validator should consume a typed audit result, preserve the claim–source–verdict trace, and downgrade an unsupported finding to `VERIFY` with low confidence.
+
+This is SetWatch decision semantics. GroundTrace may record the audit and transition facts; it should not decide whether a production-risk claim is supported.
+
+### Concrete pressure test
+
+Provide a live trace containing a valid source about rail disruption. Submit a candidate `CHANGE` finding claiming that a filming permit was refused while citing that same allowed URL.
+
+The current URL-membership check will accept the source. The future support mechanism must:
+
+- mark the permit claim unsupported;
+- retain the mismatched citation in the audit trace;
+- downgrade the finding to `VERIFY` and low confidence;
+- keep the rail evidence, inference, recommendation, clearance and execution fields distinct; and
+- leave a genuinely passage-supported rail finding unchanged.
+
+Until that test passes, `evidence_integrity="verified"` means that citations were bound to retrieved sources, not that every claim was entailed by its cited passage.
+
 ## Scope boundary
 
 This note does not justify another agent, a generic control framework or broader production semantics. First make one material finding traverse extraction, live search, typed proposal, validation, board admission and re-check without letting natural-language content become authority.
